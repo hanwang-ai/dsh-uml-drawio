@@ -1,0 +1,33 @@
+{
+  "name": "dsh-uml-drawio",
+  "version": "0.1.0",
+  "description": "Professional UML sequence diagrams (.drawio, uncompressed XML) from a structured JSON spec: Python layout/metrics, draw.io desktop CLI rendering, Pillow verification. · 从结构化 spec 生成专业 UML 时序图（.drawio 未压缩明文），Python 布局量宽，draw.io 桌面 CLI 渲染验收。",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "python",
+    "schema",
+    "fixtures",
+    "cordis.patch.yml",
+    "README.txt"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.1 <0.3.0-0",
+    "@deepseek-ai/schemastery": ">=3.18.0 <4"
+  },
+  "license": "MIT"
+}

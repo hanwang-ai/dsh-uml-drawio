@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsh.local/dsh-uml-drawio/uml-seq.spec.v1.schema.json",
+  "title": "dsh-uml-drawio sequence diagram spec (v1)",
+  "description": "Input contract of dsh-uml-drawio. Coordinates are page logical pixels. Page height is computed by the generator and never supplied. A message with from === to is a self message; there is no separate 'self' event type.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "participants", "events"],
+  "properties": {
+    "version": { "const": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "subtitle": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "page": { "$ref": "#/$defs/page" },
+    "defaults": { "$ref": "#/$defs/defaults" },
+    "participants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/participant" }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/event" }
+    }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "number", "minimum": 400, "maximum": 5000 },
+        "leftMargin": { "type": "number", "minimum": 0, "maximum": 400 },
+        "rightMargin": { "type": "number", "minimum": 0, "maximum": 400 }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "labelWidth": { "type": "number", "minimum": 40, "maximum": 1000 },
+        "frameMargin": { "type": "number", "minimum": 0, "maximum": 300 }
+      }
+    },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,31}$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 60 }
+      }
+    },
+    "event": {
+      "oneOf": [
+        { "$ref": "#/$defs/message" },
+        { "$ref": "#/$defs/fragment" },
+        { "$ref": "#/$defs/note" },
+        { "$ref": "#/$defs/text" }
+      ]
+    },
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A message edge. from === to means a self message; there is no separate 'self' event type. create/delete are reserved by the enum but rejected by v1 with E_UNSUPPORTED_KIND.",
+      "required": ["type", "kind", "from", "to", "label"],
+      "properties": {
+        "type": { "const": "message" },
+        "kind": { "enum": ["call", "async", "reply", "create", "delete"] },
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "labelWidth": { "type": "number", "minimum": 40, "maximum": 1000 },
+        "stableKey": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "fragment": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A combined fragment. guard is required and is the tab label. The first branch may set guard to null and inherits the fragment guard; every later branch MUST provide a guard. alt needs at least 2 branches; opt and loop need exactly 1 branch. par/break/critical are reserved by the enum but rejected by v1 with E_UNSUPPORTED_KIND.",
+      "required": ["type", "kind", "guard", "branches"],
+      "properties": {
+        "type": { "const": "fragment" },
+        "kind": { "enum": ["alt", "opt", "loop", "par", "break", "critical"] },
+        "guard": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "stableKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "bounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "left": { "type": "number", "minimum": 0, "maximum": 10000 },
+            "right": { "type": "number", "minimum": 0, "maximum": 10000 }
+          }
+        },
+        "branches": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "guard: null is allowed only on the first branch (it inherits the fragment guard); every later branch must provide its own guard.",
+            "required": ["events"],
+            "properties": {
+              "guard": { "type": ["string", "null"], "maxLength": 200 },
+              "events": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 500,
+                "items": { "$ref": "#/$defs/event" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "target", "position", "text"],
+      "properties": {
+        "type": { "const": "note" },
+        "target": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "array", "minItems": 1, "maxItems": 20, "items": { "type": "string", "minLength": 1 } }
+          ]
+        },
+        "position": { "enum": ["left", "right", "over"] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "labelWidth": { "type": "number", "minimum": 60, "maximum": 800 },
+        "stableKey": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text"],
+      "properties": {
+        "type": { "const": "text" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "width": { "type": "number", "minimum": 40, "maximum": 5000 },
+        "align": { "enum": ["left", "center"] },
+        "stableKey": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    }
+  }
+}

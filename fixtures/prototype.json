@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "title": "Hexagonal Territory-Control Board Game — Sequence Diagram",
+  "subtitle": "Main flow: place marker → encirclement check → capture → score & turn. Optional: undo (once per game), hint. End game after 20 turns per player or elimination of one colour.",
+  "page": { "width": 1600, "leftMargin": 35, "rightMargin": 35 },
+  "defaults": { "labelWidth": 220, "frameMargin": 60 },
+  "participants": [
+    { "id": "player", "name": "Player" },
+    { "id": "ui", "name": "UserInterface" },
+    { "id": "gc", "name": "GameController" },
+    { "id": "gb", "name": "GameBoard" },
+    { "id": "ee", "name": "EncirclementEngine" },
+    { "id": "tm", "name": "TurnManager" },
+    { "id": "sm", "name": "ScoreManager" }
+  ],
+  "events": [
+    { "type": "message", "kind": "call", "from": "player", "to": "ui", "label": "ClickCell(x, y)" },
+    { "type": "message", "kind": "call", "from": "ui", "to": "gc", "label": "ProcessInput(x, y)" },
+    { "type": "message", "kind": "call", "from": "gc", "to": "gb", "label": "IsCellEmpty(x, y)" },
+    { "type": "message", "kind": "reply", "from": "gb", "to": "gc", "label": "true" },
+    {
+      "type": "fragment", "kind": "alt", "guard": "[cell is empty]",
+      "branches": [
+        {
+          "guard": null,
+          "events": [
+            { "type": "message", "kind": "call", "from": "gc", "to": "gb", "label": "PlaceMarker(x, y, color)" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ee", "label": "CheckEncirclement(x, y, color)" },
+            { "type": "message", "kind": "call", "from": "ee", "to": "gb", "label": "GetAdjacentPieces(x, y)" },
+            { "type": "message", "kind": "reply", "from": "gb", "to": "ee", "label": "opponentPieces" },
+            {
+              "type": "fragment", "kind": "loop", "guard": "[for each opponent piece p]",
+              "branches": [
+                {
+                  "guard": null,
+                  "events": [
+                    { "type": "message", "kind": "call", "from": "ee", "to": "gb", "label": "GetOrthogonalNeighbours(p)" },
+                    { "type": "message", "kind": "reply", "from": "gb", "to": "ee", "label": "cells[4]" },
+                    { "type": "message", "kind": "call", "from": "ee", "to": "ee", "label": "isSurrounded(p, color)" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note", "target": "ee", "position": "right", "labelWidth": 146,
+              "text": "Encirclement rule: all four orthogonal neighbours of an enemy marker must belong to the current player; diagonal contacts do not count."
+            },
+            { "type": "message", "kind": "reply", "from": "ee", "to": "gc", "label": "capturedPieces" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "gb", "label": "ConvertPieces(captured, color)" },
+            { "type": "message", "kind": "reply", "from": "gb", "to": "gc", "label": "ok" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "sm", "label": "UpdateScore(board)" },
+            { "type": "message", "kind": "reply", "from": "sm", "to": "gc", "label": "scores" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "RefreshBoard(board, scores)" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "PlayCaptureAnimation(captured)" },
+            { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "board and score updated" }
+          ]
+        },
+        {
+          "guard": "[cell is occupied]",
+          "events": [
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "ShowMessage('Cell occupied')" },
+            { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "error message shown" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "fragment", "kind": "opt", "guard": "[undo requested and not used yet]",
+      "branches": [
+        {
+          "guard": null,
+          "events": [
+            { "type": "message", "kind": "call", "from": "player", "to": "ui", "label": "UndoRequest()" },
+            { "type": "message", "kind": "call", "from": "ui", "to": "gc", "label": "UndoLastMove()" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "gb", "label": "RestoreSnapshot(lastState)" },
+            { "type": "message", "kind": "reply", "from": "gb", "to": "gc", "label": "previousBoard" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "sm", "label": "UpdateScore(previousBoard)" },
+            { "type": "message", "kind": "reply", "from": "sm", "to": "gc", "label": "previousScores" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "tm", "label": "RevertTurn()" },
+            { "type": "message", "kind": "reply", "from": "tm", "to": "gc", "label": "previousTurn" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "RefreshBoard(previousState)" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "UpdateTurnCounter(previousTurn)" },
+            { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "board, score and turn restored" }
+          ]
+        }
+      ]
+    },
+    { "type": "message", "kind": "call", "from": "gc", "to": "tm", "label": "EndTurn()" },
+    { "type": "message", "kind": "reply", "from": "tm", "to": "gc", "label": "turnNo, nextPlayer" },
+    { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "UpdateTurnCounter(turnNo)" },
+    { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "turn counter and active player shown" },
+    {
+      "type": "fragment", "kind": "opt", "guard": "[player requests hint]",
+      "branches": [
+        {
+          "guard": null,
+          "events": [
+            { "type": "message", "kind": "call", "from": "player", "to": "ui", "label": "RequestHint()" },
+            { "type": "message", "kind": "call", "from": "ui", "to": "gc", "label": "GetHint()" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ee", "label": "FindCaptureMoves(board, color)" },
+            { "type": "message", "kind": "call", "from": "ee", "to": "gb", "label": "GetEmptyCells()" },
+            { "type": "message", "kind": "reply", "from": "gb", "to": "ee", "label": "emptyCells" },
+            { "type": "message", "kind": "reply", "from": "ee", "to": "gc", "label": "suggestedCells" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "HighlightCells(suggestedCells)" },
+            { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "hint cells highlighted" }
+          ]
+        }
+      ]
+    },
+    { "type": "message", "kind": "call", "from": "gc", "to": "tm", "label": "IsGameOver()" },
+    { "type": "message", "kind": "reply", "from": "tm", "to": "gc", "label": "true / false" },
+    {
+      "type": "fragment", "kind": "opt", "guard": "[gameOver = true]",
+      "branches": [
+        {
+          "guard": null,
+          "events": [
+            { "type": "message", "kind": "call", "from": "gc", "to": "sm", "label": "CalculateFinalScore(board)" },
+            { "type": "message", "kind": "reply", "from": "sm", "to": "gc", "label": "finalScores, winner" },
+            { "type": "message", "kind": "call", "from": "gc", "to": "ui", "label": "ShowResult(finalScores, winner)" },
+            { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "end-game score screen" }
+          ]
+        }
+      ]
+    }
+  ]
+}

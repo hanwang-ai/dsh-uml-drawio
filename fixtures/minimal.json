@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "title": "Login flow",
+  "page": { "width": 800, "leftMargin": 35, "rightMargin": 35 },
+  "participants": [
+    { "id": "alice", "name": "Alice" },
+    { "id": "api", "name": "API" },
+    { "id": "db", "name": "DB" }
+  ],
+  "events": [
+    { "type": "message", "kind": "call", "from": "alice", "to": "api", "label": "POST /login" },
+    { "type": "message", "kind": "call", "from": "api", "to": "db", "label": "SELECT user" },
+    { "type": "message", "kind": "reply", "from": "db", "to": "api", "label": "user row" },
+    { "type": "message", "kind": "reply", "from": "api", "to": "alice", "label": "token" },
+    {
+      "type": "fragment", "kind": "alt", "guard": "[valid credentials]",
+      "branches": [
+        {
+          "guard": null,
+          "events": [
+            { "type": "message", "kind": "call", "from": "api", "to": "alice", "label": "setSession(token)" }
+          ]
+        },
+        {
+          "guard": "[invalid]",
+          "events": [
+            { "type": "message", "kind": "call", "from": "api", "to": "alice", "label": "error 401" }
+          ]
+        }
+      ]
+    }
+  ]
+}

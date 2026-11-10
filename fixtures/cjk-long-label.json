@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "title": "棋盘游戏落子与围困判定时序图",
+  "subtitle": "主流程：落子 → 围困检测 → 提子 → 计分与换手；可选：撤销一次、提示。",
+  "page": { "width": 900, "leftMargin": 35, "rightMargin": 35 },
+  "participants": [
+    { "id": "player", "name": "玩家" },
+    { "id": "ui", "name": "界面" },
+    { "id": "gc", "name": "控制器" },
+    { "id": "gb", "name": "棋盘" },
+    { "id": "sm", "name": "计分器" }
+  ],
+  "events": [
+    { "type": "message", "kind": "call", "from": "player", "to": "ui", "label": "点击格子(x, y)" },
+    { "type": "message", "kind": "call", "from": "ui", "to": "gc", "label": "处理输入(x, y)" },
+    { "type": "message", "kind": "call", "from": "gc", "to": "gb", "label": "检查格子为空(x, y)" },
+    { "type": "message", "kind": "reply", "from": "gb", "to": "gc", "label": "true" },
+    {
+      "type": "fragment", "kind": "loop", "guard": "[对每个敌方棋子 p]",
+      "branches": [
+        {
+          "guard": null,
+          "events": [
+            { "type": "message", "kind": "call", "from": "gc", "to": "gb", "label": "查询相邻棋子(p)" },
+            { "type": "message", "kind": "reply", "from": "gb", "to": "gc", "label": "四个方向棋子" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "message", "kind": "call", "from": "player", "to": "ui",
+      "label": "请把当前玩家选择的格子坐标连同棋盘版本号当前回合数玩家颜色和撤销快照编号一起发送给游戏控制器并同步等待控制器返回校验结果并记录日志"
+    },
+    { "type": "message", "kind": "reply", "from": "ui", "to": "player", "label": "已发送并收到校验结果" },
+    { "type": "message", "kind": "call", "from": "gc", "to": "sm", "label": "更新计分(board)" },
+    { "type": "message", "kind": "reply", "from": "sm", "to": "gc", "label": "新的比分" }
+  ]
+}
