@@ -50,6 +50,25 @@ line ("人工视角复核：...") or state "仅通过 lint，未经视觉验证"
 
 crop uses page-logical coordinates; on a 2x PNG, measure pixels and divide by 2 before passing.
 
+Standard conformance (UML 2.5.1)
+-------------------------------
+
+The output is meant to read as an OMG UML 2.5.1 sequence diagram (formal/17-12-05, 2017-12,
+Clause 17 Interactions, https://www.omg.org/spec/UML/2.5.1/PDF), not merely a diagram that
+resembles one:
+
+- Guards are InteractionOperand::guard text: the fragment tab, or a dedicated guard strip when an
+  operand declares its own guard. Guard text is never emitted as an independent node, so moving
+  the diagram cannot detach a guard from its operand.
+- Message notation is fixed by emit.py: call = solid + filled arrowhead (ST_CALL), async = solid +
+  open arrowhead (ST_ASYNC), reply = dashed + open arrowhead (ST_REPLY), lifeline = dashed
+  vertical line (ST_LIFE).
+- Notation v1 does not support (par/break/critical, create/delete) is rejected with
+  E_UNSUPPORTED_KIND instead of being approximated. Do not hand-edit the generated .drawio to add
+  it; change the spec or report the gap.
+- The skill body requires the review to state "UML 依据：UML 2.5.1 Clause 17（Interactions）" and
+  to list every deliberate simplification.
+
 How it works
 ------------
 
